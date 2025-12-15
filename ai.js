@@ -4,11 +4,17 @@
 import {
   GEMINI_PROXY_URL,
   getFinalCertificateCatalog,
+  //Ghaith's change start
+  getFinalTrainingCoursesCatalog,
+  //Ghaith's change end
 } from "./constants.js";
 
 import {
   certificateCatalog,
   getCatalogAsPromptString,
+  //Ghaith's change start
+  getTrainingCoursesCatalogAsPromptString,
+  //Ghaith's change end
   summarizeRecommendationsForChat,
   calculateYearsFromPeriod,
   calculateTotalExperience,
@@ -105,6 +111,9 @@ export function hideTypingIndicator() {
 // ---------------------------------------------------------------------------
 export function buildChatSystemPrompt(uploadedCvs) {
   const catalogString = getCatalogAsPromptString();
+  //Ghaith's change start
+  const trainingCatalogString = getTrainingCoursesCatalogAsPromptString();
+  //Ghaith's change end
   const hasCvContext = uploadedCvs.length > 0;
   
   // Safe handling if structured data is not yet parsed (isParsing=true)
@@ -116,6 +125,10 @@ export function buildChatSystemPrompt(uploadedCvs) {
 
 **Available Certifications Catalog:**
 ${catalogString}
+//Ghaith's change start
+**Available Training Courses Catalog:**
+${trainingCatalogString}
+//Ghaith's change end
 ${cvContext}
 
 When recommending certifications, always:
@@ -282,14 +295,23 @@ Remember:
 // ---------------------------------------------------------------------------
 export function buildAnalysisPromptForCvs(cvArray, rulesArray, language = 'en') {
   const catalogString = getCatalogAsPromptString();
+  //Ghaith's change start
+  const trainingCatalogString = getTrainingCoursesCatalogAsPromptString();
+  //Ghaith's change end
   const langInstruction = language === 'ar' 
-    ? "Output the 'reason' field strictly in Arabic. Keep 'candidateName' and 'certName' in their original text."
+    //Ghaith's change start
+    ? "Output the 'reason' field strictly in Arabic. Keep 'candidateName', 'certName', and 'courseName' in their original text."
+    //Ghaith's change end
     : "Output the 'reason' field in English.";
   return `
 ${ANALYSIS_SYSTEM_PROMPT.trim()}
 
 **Catalog of Certifications:**
 ${catalogString}
+//Ghaith's change start
+**Catalog of Training Courses:**
+${trainingCatalogString}
+//Ghaith's change end
 ${langInstruction}
 **Business Rules:**
 ${rulesArray && rulesArray.length > 0
@@ -317,7 +339,17 @@ For each CV, provide recommendations in a structured JSON format. The JSON must 
           "reason": "Clear explanation of why this certification is relevant.",
           "rulesApplied": ["List of rules that influenced this recommendation"]
         }
+      ],
+//Ghaith's change start
+      "trainingCourses": [
+        {
+          "courseId": "training_1_...",
+          "courseName": "Fundamentals of Entrepreneurship",
+          "reason": "Clear explanation of why this training course is relevant.",
+          "rulesApplied": ["List of rules that influenced this recommendation"]
+        }
       ]
+//Ghaith's change end
     }
   ]
 }
@@ -330,9 +362,12 @@ For each CV, provide recommendations in a structured JSON format. The JSON must 
 - Start your response with { and end with }.
 - The entire response must be parseable as JSON without any modifications.
 - If no recommendations can be made for a candidate, provide an empty array [] for their "recommendations" field.
+//Ghaith's change start
+- If no training courses can be recommended, provide an empty array [] for their "trainingCourses" field.
+//Ghaith's change end
 
 **Example of correct response format:**
-{"candidates":[{"candidateName":"John Doe","recommendations":[]}]}
+{"candidates":[{"candidateName":"John Doe","recommendations":[],"trainingCourses":[]}]}
 
 Begin your response now with the JSON object only:
 `;
@@ -345,15 +380,32 @@ Begin your response now with the JSON object only:
  */
 export async function analyzeSingleCvWithAI(cv, rulesArray, language = 'en') {
   const catalogString = getCatalogAsPromptString();
-  const langInstruction = language === 'ar' 
-    ? "Output the 'reason' field strictly in Arabic. Keep 'candidateName' and 'certName' in their original text."
-    : "Output the 'reason' field in English.";
+  //Ghaith's change start
+  const trainingCatalogString = getTrainingCoursesCatalogAsPromptString();
+  //Ghaith's change end
+
+  // 14-12-2025 Taif + Ghaith/Joud merged instruction
+  const langInstruction =
+    language === 'ar'
+      ? "Output the 'reason' field AND 'recommendationIntro' field strictly in Arabic. Keep 'candidateName', 'certName', and 'courseName' in their original text."
+      : "Output the 'reason' field AND 'recommendationIntro' field in English.";
+
+  const introTemplate =
+    language === 'ar'
+      ? "مقدمة موجزة تنتهي بـ: بناءً على ذلك، نوصي بالشهادات التالية: (50 كلمة كحد أقصى)"
+      : "Brief intro ending with: Based on this, we recommend the following certificates: (MAXIMUM 50 WORDS)";
 
   const prompt = `
 ${ANALYSIS_SYSTEM_PROMPT.trim()}
 
 **Catalog of Certifications:**
 ${catalogString}
+//Ghaith's change start
+**Catalog of Training Courses:**
+${trainingCatalogString}
+//Ghaith's change end
+
+**LANGUAGE INSTRUCTION:**
 ${langInstruction}
 
 **Business Rules:**
@@ -366,20 +418,41 @@ ${cv.text}
 **Task:**
 Provide recommendations for this specific candidate in strict JSON format.
 
-**JSON Structure:**
+**JSON Structure (SINGLE OBJECT, NOT ARRAY):**
 {
   "candidateName": "Full Name Extracted from CV",
+  "recommendationIntro": "${introTemplate}",
   "recommendations": [
     {
       "certId": "pmp",
       "certName": "Project Management Professional (PMP)",
-      "reason": "Clear explanation of why this matches.",
+      "reason": "${language === 'ar' ? 'السبب باللغة العربية' : 'Reason in English'}",
+      "rulesApplied": ["Rule 1"]
+    }
+  ],
+  //Ghaith's change start
+  "trainingCourses": [
+    {
+      "courseId": "training_1_...",
+      "courseName": "Fundamentals of Entrepreneurship",
+      "reason": "Clear explanation of why this training course matches.",
       "rulesApplied": ["Rule 1"]
     }
   ]
+  //Ghaith's change end
 }
 
-**CRITICAL:** Respond ONLY with valid JSON. No markdown formatting.
+**CRITICAL REMINDERS:**
+- recommendationIntro MUST be in ${language === 'ar' ? 'Arabic' : 'English'}
+- recommendationIntro MUST be MAXIMUM 50 WORDS
+- recommendationIntro MUST end with "${language === 'ar' ? 'بناءً على ذلك، نوصي بالشهادات التالية:' : 'Based on this, we recommend the following certificates:'}"
+- recommendationIntro should ONLY describe candidate background (seniority, years, expertise)
+- Do NOT mention WHY certifications are recommended in the intro
+- reason field MUST be in ${language === 'ar' ? 'Arabic' : 'English'}
+- Respond with a SINGLE OBJECT, NOT wrapped in "candidates" array
+- Response must be valid JSON only
+- No markdown formatting
+- Start with { and end with }
 `;
 
   const rawResponse = await callGeminiAPI(prompt, [], "");
@@ -437,7 +510,14 @@ Provide recommendations for this specific candidate in strict JSON format.
 
   try {
     const singleResult = JSON.parse(cleaned);
-    singleResult.cvName = cv.name; 
+    singleResult.cvName = cv.name;
+    // Ensure recommendationIntro exists as a string for downstream UI/PDF usage
+    if (typeof singleResult.recommendationIntro !== "string") {
+      singleResult.recommendationIntro =
+        language === "ar"
+          ? "لم يتم العثور على توصيات مناسبة بناءً على المعلومات المتاحة. بناءً على ذلك، نوصي بالشهادات التالية:"
+          : "No suitable recommendations found based on available information. Based on this, we recommend the following certificates:";
+    }
     return singleResult;
   } catch (err) {
     console.error(`Error parsing AI response for ${cv.name}:`, err);
@@ -445,6 +525,10 @@ Provide recommendations for this specific candidate in strict JSON format.
     return {
       candidateName: cv.name,
       cvName: cv.name,
+      recommendationIntro:
+        language === "ar"
+          ? "لم يتم العثور على توصيات مناسبة بناءً على المعلومات المتاحة. بناءً على ذلك، نوصي بالشهادات التالية:"
+          : "No suitable recommendations found based on available information. Based on this, we recommend the following certificates:",
       recommendations: [],
       error: "Failed to generate recommendations."
     };
@@ -498,7 +582,13 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
     return;
   }
   const catalog = getFinalCertificateCatalog(); // Load catalog
+  //Ghaith's change start
+  const trainingCatalog = getFinalTrainingCoursesCatalog();
+  //Ghaith's change end
   console.log("📚 Catalog loaded, certificates count:", catalog.length);
+  //Ghaith's change start
+  console.log("📚 Training catalog loaded, courses count:", trainingCatalog.length);
+  //Ghaith's change end
   containerEl.innerHTML = "";
 
   function getColor(hours) {
@@ -541,8 +631,38 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
       }
       candidateDiv.appendChild(nameDiv);
 
-      const candidateTimeline = [];
-      let candidateTotalHours = 0;
+      // 14-12-2025 Taif's update merged - candidate intro block
+      const introDiv = document.createElement("div");
+      introDiv.className = "recommendation-intro";
+
+      let introText =
+        candidate.recommendationIntro || candidate.recommendationSummary || "";
+
+      if (!introText) {
+        if (language === "ar") {
+          introText =
+            "هذا دور مهم ويتطلب خبرة قوية على المستوى الاستراتيجي. بناءً على خبرات المرشح الحالية ودوره المستهدف، تم ترشيح الشهادات التالية لأنها تعزز المهارات الأساسية وتدعم التقدّم المهني.";
+        } else {
+          introText =
+            "This is a senior and critical role that requires strong strategic capability. Based on the candidate's background and target responsibilities, the following certifications are recommended to strengthen core skills and support career growth.";
+        }
+      }
+
+      introDiv.textContent = introText;
+      candidateDiv.appendChild(introDiv);
+
+      //Ghaith's change start
+      // ========== CERTIFICATES SUBSECTION ==========
+      const certificatesSubsection = document.createElement("div");
+      certificatesSubsection.className = "recommendations-subsection";
+      const certTitle = document.createElement("h4");
+      certTitle.className = "subsection-title";
+      certTitle.textContent = language === "ar" ? "الشهادات" : "Certificates";
+      certificatesSubsection.appendChild(certTitle);
+
+      const certTimeline = [];
+      let certTotalHours = 0;
+      //Ghaith's change end
 
       if (candidate.recommendations && candidate.recommendations.length > 0) {
         candidate.recommendations.forEach((rec) => {
@@ -573,8 +693,151 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
             console.warn(`No hours found for certificate: ${rec.certName}`, catalogEntry);
           }
           
-          candidateTimeline.push({ name: displayName, hours });
-          candidateTotalHours += hours;
+          //Ghaith's change start
+          certTimeline.push({ name: displayName, hours });
+          certTotalHours += hours;
+          //Ghaith's change end
+
+          const card = document.createElement("div");
+          card.className = "recommendation-card";
+
+          const hourWord = language === "ar" ? "ساعة" : "hours";
+          const hoursText =
+            hours > 0
+              ? `${hours} ${hourWord}`
+              : (language === "ar" ? "غير متوفر" : "N/A");
+
+          card.innerHTML = `
+            <div class="recommendation-title">${displayName}</div>
+            <div class="recommendation-reason">
+              <i class="fas fa-lightbulb"></i> ${rec.reason}
+            </div>
+            <div class="recommendation-hours recommendation-hours-inline">
+              <i class="far fa-clock"></i>
+              <span>${language === "ar"
+                      ? "الوقت التقديري لإكمال الشهادة:"
+                      : "Estimated time to complete:"}
+              </span>
+              <strong>${hoursText}</strong>
+              ${
+                rec.rulesApplied && rec.rulesApplied.length > 0
+                  ? `<span class="recommendation-rule-inline">
+                       <i class="fas fa-gavel"></i> Rules Applied: ${rec.rulesApplied.join(", ")}
+                     </span>`
+                  : ""
+              }
+            </div>
+          `;
+          //Ghaith's change start
+          certificatesSubsection.appendChild(card);
+          //Ghaith's change end
+        });
+      } else {
+        const noRecP = document.createElement("p");
+        noRecP.textContent =
+          "No specific recommendations found for this candidate based on the current rules and catalog.";
+        //Ghaith's change start
+        certificatesSubsection.appendChild(noRecP);
+        //Ghaith's change end
+      }
+
+      //Ghaith's change start
+      // Certificates Timeline
+      if (certTimeline.length > 0 && certTotalHours > 0) {
+        const timelineWrapper = document.createElement("div");
+        timelineWrapper.className = "timeline-wrapper";
+        const titleText =
+          language === "ar"
+            ? "الوقت التقريبي لإكمال الشهادات المقترحة"
+            : "Estimated timeline to complete recommended certificates";
+        const totalLabel = language === "ar" ? "الإجمالي" : "Total";
+        const hourWord = language === "ar" ? "ساعة" : "hours";
+        const isArabic = language === "ar";
+        const barsHtml = `
+          <div class="stacked-bar ${isArabic ? "stacked-bar-rtl" : ""}">
+            ${certTimeline
+            .map((item) => {
+              const safeHours = Number(item.hours) || 0;
+              const percentage =
+                safeHours > 0 ? (safeHours / certTotalHours) * 100 : 0;
+              const displayHours = `${safeHours} ${hourWord}`;
+              const color = getColor(safeHours);
+              return `
+                  <div class="bar-segment" style="width:${percentage}%; background:${color}">
+                    <span class="segment-hours">${displayHours}</span>
+                  </div>
+                `;
+            })
+            .join("")}
+          </div>
+          <div class="stacked-labels ${isArabic ? "stacked-labels-rtl" : ""}">
+            ${certTimeline
+            .map((item) => {
+              const safeHours = Number(item.hours) || 0;
+              const percentage =
+                safeHours > 0 ? (safeHours / certTotalHours) * 100 : 0;
+              return `
+                  <div class="segment-label" style="width:${percentage}%">
+                    ${item.name}
+                  </div>
+                `;
+            })
+            .join("")}
+          </div>
+        `;
+        timelineWrapper.innerHTML = `
+          <h4 class="timeline-title ${isArabic ? "timeline-title-rtl" : ""}">
+            ${titleText} — ${totalLabel}: <strong>${certTotalHours}</strong> ${hourWord}
+          </h4>
+          <div class="stacked-timeline ${isArabic ? "stacked-timeline-rtl" : ""}">
+            ${barsHtml}
+          </div>
+        `;
+        certificatesSubsection.appendChild(timelineWrapper);
+      }
+      candidateDiv.appendChild(certificatesSubsection);
+
+      // ========== TRAINING COURSES SUBSECTION ==========
+      const trainingSubsection = document.createElement("div");
+      trainingSubsection.className = "recommendations-subsection";
+      const trainingTitle = document.createElement("h4");
+      trainingTitle.className = "subsection-title";
+      trainingTitle.textContent = language === "ar" ? "الدورات التدريبية" : "Training Courses";
+      trainingSubsection.appendChild(trainingTitle);
+
+      const trainingTimeline = [];
+      let trainingTotalHours = 0;
+
+      if (candidate.trainingCourses && candidate.trainingCourses.length > 0) {
+        candidate.trainingCourses.forEach((rec) => {
+          let displayName = rec.courseName;
+          if (language === 'ar') {
+            const found = trainingCatalog.find(c => c.name === rec.courseName || c["Training Course Title"] === rec.courseName);
+            if (found && found.nameAr) displayName = found.nameAr;
+          }
+
+          const catalogEntry =
+            trainingCatalog.find(c => c.id === rec.courseId) ||
+            trainingCatalog.find(c =>
+              c.name === rec.courseName ||
+              c["Training Course Title"] === rec.courseName
+            );
+
+          //Ghaith's change start - training hours (prefer rec, then catalog) to avoid N/A
+          let hours = 0;
+          if (rec && (rec.hours || rec.totalHours || rec.estimatedHours)) {
+            hours = rec.hours || rec.totalHours || rec.estimatedHours || 0;
+          } else if (catalogEntry) {
+            hours = catalogEntry.totalHours || 
+                    catalogEntry["Total Hours"] || 
+                    catalogEntry["عدد الساعات"] || 
+                    0;
+          }
+          hours = Number(hours) || 0;
+          //Ghaith's change end
+          
+          trainingTimeline.push({ name: displayName, hours });
+          trainingTotalHours += hours;
 
           const card = document.createElement("div");
           card.className = "recommendation-card";
@@ -591,61 +854,51 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
               <i class="fas fa-lightbulb"></i> ${rec.reason}
             </div>
             <div class="recommendation-hours">
-            <i class="far fa-clock"></i>
-            <span>${language === "ar"
-                    ? "الوقت التقديري لإكمال الشهادة:"
-                    : "Estimated time to complete:"}
-            </span>
-            <strong>${hoursText}</strong>
+              <i class="far fa-clock"></i>
+              <span>${language === "ar"
+                      ? "عدد الساعات:"
+                      : "Total hours:"}
+              </span>
+              <strong>${hoursText}</strong>
+              ${
+                rec.rulesApplied && rec.rulesApplied.length > 0
+                  ? `<span class="recommendation-rule-inline">
+                       <i class="fas fa-gavel"></i> ${language === "ar" ? "القواعد:" : "Rules:"} ${rec.rulesApplied.join(", ")}
+                     </span>`
+                  : ""
+              }
             </div>
-            
-            ${
-              rec.rulesApplied && rec.rulesApplied.length > 0
-                ? `<div class="recommendation-rule">
-                     <i class="fas fa-gavel"></i> Rules Applied: ${rec.rulesApplied.join(
-                       ", "
-                     )}
-                   </div>`
-                : ""
-            }
           `;
-          candidateDiv.appendChild(card);
+          trainingSubsection.appendChild(card);
         });
       } else {
         const noRecP = document.createElement("p");
-        noRecP.textContent =
-          "No specific recommendations found for this candidate based on the current rules and catalog.";
-        candidateDiv.appendChild(noRecP);
+        noRecP.textContent = language === "ar" 
+          ? "لا توجد توصيات للدورات التدريبية."
+          : "No training course recommendations found.";
+        trainingSubsection.appendChild(noRecP);
       }
 
-      // Show timeline only if there are recommendations with hours > 0
-      console.log("📊 displayRecommendations - Timeline data for candidate:", {
-        candidateName: candidate.candidateName || candidate.cvName,
-        timelineLength: candidateTimeline.length,
-        totalHours: candidateTotalHours,
-        timeline: candidateTimeline
-      });
-      
-      if (candidateTimeline.length > 0 && candidateTotalHours > 0) {
-        console.log("✅ Creating timeline visualization in displayRecommendations");
+      // Training Courses Timeline
+      if (trainingTimeline.length > 0 && trainingTotalHours > 0) {
         const timelineWrapper = document.createElement("div");
         timelineWrapper.className = "timeline-wrapper";
         const titleText =
           language === "ar"
-            ? "الوقت التقريبي لإكمال الشهادات المقترحة"
-            : "Estimated timeline to complete recommended certificates";
-        const totalLabelAr = "الإجمالي";
+            ? "الوقت التقريبي لإكمال الدورات التدريبية المقترحة"
+            : "Estimated timeline to complete recommended training courses";
+        const totalLabel = language === "ar" ? "الإجمالي" : "Total";
         const hourWord = language === "ar" ? "ساعة" : "hours";
         const isArabic = language === "ar";
         const barsHtml = `
           <div class="stacked-bar ${isArabic ? "stacked-bar-rtl" : ""}">
-            ${candidateTimeline
+            ${trainingTimeline
             .map((item) => {
               const safeHours = Number(item.hours) || 0;
               const percentage =
-                safeHours > 0 ? (safeHours / candidateTotalHours) * 100 : 0;
+                safeHours > 0 ? (safeHours / trainingTotalHours) * 100 : 0;
               const displayHours = `${safeHours} ${hourWord}`;
-              const color = getColor ? getColor(safeHours) : "#f4b6b6";
+              const color = getColor(safeHours);
               return `
                   <div class="bar-segment" style="width:${percentage}%; background:${color}">
                     <span class="segment-hours">${displayHours}</span>
@@ -655,11 +908,11 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
             .join("")}
           </div>
           <div class="stacked-labels ${isArabic ? "stacked-labels-rtl" : ""}">
-            ${candidateTimeline
+            ${trainingTimeline
             .map((item) => {
               const safeHours = Number(item.hours) || 0;
               const percentage =
-                safeHours > 0 ? (safeHours / candidateTotalHours) * 100 : 0;
+                safeHours > 0 ? (safeHours / trainingTotalHours) * 100 : 0;
               return `
                   <div class="segment-label" style="width:${percentage}%">
                     ${item.name}
@@ -669,30 +922,18 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
             .join("")}
           </div>
         `;
-        const totalHtml =
-          language === "ar"
-            ? `<div class="total-label">${totalLabelAr}: <strong>${candidateTotalHours}</strong> ${hourWord}</div>`
-            : `<div class="total-label">Total: <strong>${candidateTotalHours}</strong> ${hourWord}</div>`;
         timelineWrapper.innerHTML = `
           <h4 class="timeline-title ${isArabic ? "timeline-title-rtl" : ""}">
-  ${titleText}
-</h4>
+            ${titleText} — ${totalLabel}: <strong>${trainingTotalHours}</strong> ${hourWord}
+          </h4>
           <div class="stacked-timeline ${isArabic ? "stacked-timeline-rtl" : ""}">
             ${barsHtml}
-            <div class="total-row">
-              <div class="total-line"></div>
-              ${totalHtml}
-            </div>
           </div>
         `;
-        candidateDiv.appendChild(timelineWrapper);
-        console.log("✅ Timeline added to candidate div in displayRecommendations");
-      } else {
-        console.log("⚠️ Timeline NOT shown in displayRecommendations - no hours or empty timeline", {
-          timelineLength: candidateTimeline.length,
-          totalHours: candidateTotalHours
-        });
+        trainingSubsection.appendChild(timelineWrapper);
       }
+      candidateDiv.appendChild(trainingSubsection);
+      //Ghaith's change end
 
       containerEl.appendChild(candidateDiv);
     });
@@ -709,6 +950,72 @@ export function displayRecommendations(recommendations, containerEl, resultsSect
   
   console.log("📊 displayRecommendations completed. Total candidates displayed:", 
     recommendations?.candidates?.length || 0);
+}
+
+// 14-12-2025 Taif's updates merged - translateRecommendations helper
+export async function translateRecommendations(recommendations, targetLang) {
+  if (
+    !recommendations ||
+    !recommendations.candidates ||
+    recommendations.candidates.length === 0
+  ) {
+    return recommendations;
+  }
+
+  const translationPrompt =
+    targetLang === "ar"
+      ? `You are a professional translator. Translate the following certification recommendation content from English to Arabic. Maintain the same meaning, tone, and professional style.
+
+CRITICAL RULES:
+
+- Translate ONLY the "recommendationIntro" and "reason" fields
+- Keep "candidateName", "certName", "certId", and "rulesApplied" exactly as they are
+- Maintain the same JSON structure
+- Do not add or remove any information
+- Keep the translation concise and professional
+- Return ONLY valid JSON, no markdown, no explanations
+
+Input JSON:
+${JSON.stringify(recommendations, null, 2)}
+
+Return the translated JSON object starting with { and ending with }:`
+      : `You are a professional translator. Translate the following certification recommendation content from Arabic to English. Maintain the same meaning, tone, and professional style.
+
+CRITICAL RULES:
+
+- Translate ONLY the "recommendationIntro" and "reason" fields
+- Keep "candidateName", "certName", "certId", and "rulesApplied" exactly as they are
+- Maintain the same JSON structure
+- Do not add or remove any information
+- Keep the translation concise and professional
+- Return ONLY valid JSON, no markdown, no explanations
+
+Input JSON:
+${JSON.stringify(recommendations, null, 2)}
+
+Return the translated JSON object starting with { and ending with }:`;
+
+  try {
+    const rawResponse = await callGeminiAPI(translationPrompt, [], "");
+
+    let cleaned = rawResponse.trim();
+    cleaned = cleaned
+      .replace(/```json\s*/gi, "")
+      .replace(/```\s*/g, "")
+      .trim();
+
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+
+    const translated = JSON.parse(cleaned);
+    return translated;
+  } catch (err) {
+    console.error("Translation failed:", err);
+    return recommendations;
+  }
 }
 
 // Re-export utility used in UI for CV summary

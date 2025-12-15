@@ -715,9 +715,8 @@ html[lang="ar"] .cv-modal .cv-close-btn {
 
 /* === RESULTS === */
 .results-section { margin-top: var(--space-l); padding: var(--space-m); border-radius: var(--radius-md); box-shadow: var(--card-shadow); background: var(--card-bg); }
-.candidate-result { padding: var(--space-s) 0; border-bottom: var(--border); }
-.candidate-result:last-child { border-bottom: none; }
-.candidate-cv-name { color: var(--muted); font-size: 0.9rem; margin: 0 0 var(--space-xs) 0; font-weight: 400; }
+.candidate-result { padding: var(--space-s) 0; }
+.candidate-cv-name { color: var(--text); font-size: 0.9rem; margin: 0 0 var(--space-xs) 0; font-weight: 400; }
 .candidate-name { color: var(--primary); font-size: 1.05rem; margin: 0 0 var(--space-xs) 0; }
 .recommendation-card { background: #fbfbfc; padding: var(--space-s); border-left: 4px solid var(--secondary); border-radius: 8px; margin-bottom: var(--space-s); }
 
@@ -740,12 +739,13 @@ html[lang="ar"] .cv-modal .cv-close-btn {
 }
 
 .recommendation-hours {
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: 0.9rem;
   color: var(--muted);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .recommendation-hours i {
@@ -759,6 +759,13 @@ html[lang="ar"] .cv-modal .cv-close-btn {
 
 .recommendation-rule {
   margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+/* inline rule when placed next to hours */
+.recommendation-rule-inline {
+  margin-top: 0;
   font-size: 0.85rem;
   color: var(--muted);
   font-style: italic;
@@ -1302,6 +1309,12 @@ html[lang="ar"] .search-icon {
   grid-column: 1 / -1;
 }
 
+/*Ghaith's change start - place company under role title in CV review */
+.cv-section-experience .item-row .cv-field-company {
+  grid-column: 1 / -1;
+}
+/*Ghaith's change end */
+
 .cv-section-experience .item-row .cv-description-textarea {
   grid-column: 1 / -1;
 }
@@ -1420,23 +1433,25 @@ button#maximize-uploaded-btn:hover i {
 
 /* Timeline */
 .timeline-wrapper {
-  margin-top: 1.25rem;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
+  margin-top: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
   border: 1px solid #e3e7eb;
   background-color: #f9fbfc;
 }
 
 .timeline-title {
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: #003b49;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .stacked-timeline {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .stacked-bar {
@@ -1445,15 +1460,16 @@ button#maximize-uploaded-btn:hover i {
   border: 2px solid #102a43;
   border-radius: 6px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .bar-segment {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 55px;
+  height: 42px;
   border-right: 2px solid #102a43;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .bar-segment:last-child {
@@ -1462,13 +1478,15 @@ button#maximize-uploaded-btn:hover i {
 
 .segment-hours {
   color: #000;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .bar-segment:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.05);
   cursor: pointer;
   z-index: 10;
 }
@@ -1476,13 +1494,16 @@ button#maximize-uploaded-btn:hover i {
 .stacked-labels {
   display: flex;
   width: 100%;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .segment-label {
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   text-align: center;
   color: #102a43;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 0 2px;
 }
 
 .total-row {
@@ -1715,4 +1736,86 @@ body.keep-ltr-layout .bot-message ul {
   margin-right: 8px;
   cursor: pointer;
 }
+
+/* 14-12-2025 Starting Taif's updates */
+
+.recommendation-intro {
+  margin: 8px 0 16px 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  box-shadow: none;
+}
+
+html[lang="ar"] .recommendation-intro {
+  border: none;
+  direction: rtl;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .recommendation-intro {
+    padding: 0;
+    font-size: 0.9rem;
+  }
+}
+.pdf-recommendation-intro {
+  margin: 8px 0 16px 0;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #023B42;
+}
+/* 14-12-2025 Ending Taif's updates */
+
+/*Ghaith's change start - compact recommendations section to fit more CVs on screen */
+#recommendations-container {
+  font-size: 0.90rem;
+  line-height: 1.35;
+}
+#recommendations-container .candidate-result {
+  gap: 6px;
+}
+/* Visible separator line between CV recommendation blocks */
+#recommendations-container .candidate-result + .candidate-result {
+  border-top: 2px solid rgba(0, 0, 0, 0.12);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+#recommendations-container .candidate-name {
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+#recommendations-container .recommendation-card {
+  padding: 8px 10px;
+  font-size: 0.90rem;
+}
+#recommendations-container .recommendation-title {
+  font-size: 0.95rem;
+}
+#recommendations-container .recommendation-reason {
+  font-size: 0.90rem;
+}
+#recommendations-container .recommendation-hours,
+#recommendations-container .recommendation-rule {
+  font-size: 0.85rem;
+}
+#recommendations-container .timeline-title {
+  font-size: 0.90rem;
+  margin-bottom: 4px;
+}
+#recommendations-container .segment-label {
+  font-size: 0.80rem;
+}
+#recommendations-container .segment-hours {
+  font-size: 0.80rem;
+}
+#recommendations-container .total-label {
+  font-size: 0.85rem;
+}
+/*Ghaith's change end */
 

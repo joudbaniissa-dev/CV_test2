@@ -4,15 +4,28 @@
 import {
   CHAT_HISTORY_KEY,
   CERT_CATALOG_KEY,
+  //Ghaith's change start
+  TRAINING_CATALOG_KEY,
+  //Ghaith's change end
   USER_RULES_KEY,
   LAST_RECOMMENDATIONS_KEY,
   DEFAULT_RULES,
   initializeCertificates,
+  //Ghaith's change start
+  initializeTrainingCourses,
+  //Ghaith's change end
   getFinalCertificateCatalog,
+  //Ghaith's change start
+  getFinalTrainingCoursesCatalog,
+  //Ghaith's change end
 } from "./constants.js";
 
 // Certificate catalog (loaded on init)
 export let certificateCatalog = [];
+//Ghaith's change start
+// Training courses catalog (loaded on init)
+export let trainingCoursesCatalog = [];
+//Ghaith's change end
 
 // Save chat history
 export function saveChatHistory(chatHistory) {
@@ -101,6 +114,33 @@ export async function loadCertificateCatalog() {
   return certificateCatalog;
 }
 
+//Ghaith's change start
+// Load training courses catalog (async - loads from JSON file)
+export async function loadTrainingCoursesCatalog() {
+  // Initialize training courses if not already loaded
+  await initializeTrainingCourses();
+  
+  // Get the loaded training courses
+  trainingCoursesCatalog = getFinalTrainingCoursesCatalog();
+  
+  // Persist to localStorage for faster future loads
+  if (trainingCoursesCatalog && trainingCoursesCatalog.length > 0) {
+    saveTrainingCoursesCatalog(trainingCoursesCatalog);
+  }
+  
+  return trainingCoursesCatalog;
+}
+
+// Save training courses catalog to storage
+export function saveTrainingCoursesCatalog(catalogArray) {
+  try {
+    localStorage.setItem(TRAINING_CATALOG_KEY, JSON.stringify(catalogArray));
+  } catch (err) {
+    console.error("Failed to save training courses catalog:", err);
+  }
+}
+//Ghaith's change end
+
 // Save catalog to storage
 export function saveCertificateCatalog(catalogArray) {
   try {
@@ -134,6 +174,29 @@ export function getCatalogAsPromptString() {
     )
     .join("\n");
 }
+
+//Ghaith's change start
+// Training courses catalog as prompt string
+export function getTrainingCoursesCatalogAsPromptString() {
+  const catalog =
+    trainingCoursesCatalog && trainingCoursesCatalog.length > 0
+      ? trainingCoursesCatalog
+      : getFinalTrainingCoursesCatalog();
+
+  return catalog
+    .map(
+      (c) =>
+        `- **${c.name || c["Training Course Title"] || "Unknown Course"}** (${
+          c.level || c["Training Level"] || "N/A"
+        }): ${c.overview || c["Overview"] || ""}${
+          c.fieldEn || c["Training Field"]
+            ? ` | Field: ${c.fieldEn || c["Training Field"]}`
+            : ""
+        }${c.totalHours || c["Total Hours"] ? ` | Hours: ${c.totalHours || c["Total Hours"]}` : ""}`
+    )
+    .join("\n");
+}
+//Ghaith's change end
 
 // Basic in-memory search (case-insensitive) across common fields
 export function searchCertificates(query) {
