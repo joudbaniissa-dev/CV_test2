@@ -359,7 +359,8 @@ export function calculateYearsFromPeriod(period) {
   const startYear = extractYear(parts[0].trim());
   const endYear =
     parts[1].toLowerCase().includes("present") ||
-    parts[1].toLowerCase().includes("current")
+    parts[1].toLowerCase().includes("current") ||
+    parts[1].toLowerCase().includes("now")
       ? currentYear
       : extractYear(parts[1].trim());
   if (!startYear || !endYear) return 0;
