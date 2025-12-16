@@ -1656,52 +1656,49 @@ const renderSubmittedCvBubbles = (allResults) => {
 // Main bootstrap
 // ---------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
+  // 1. Declare variables first
+  let chatHistory = []; 
+  
+  // 2. Initialize Language FIRST (prevents re-triggering loader on existing data)
+  initializeLanguage();
   // 12-15-2025 Joud start
-  let chatHistory = [];
-  // Check if persistence is enabled
+  // 3. Persistence Logic
   if (!isPersistenceEnabled()) {
-    setPersistence(false); // Ensure keys are wiped on start if not enabled
-    // Only wipe data if persistence is explicitly OFF
+    setPersistence(false); 
     saveChatHistory([]);
     saveLastRecommendations({ candidates: [] });
   } else {
-    // If persistence is ON, LOAD the data instead of wiping it
+    // Load data
     chatHistory = loadChatHistory();
     lastRecommendations = loadLastRecommendations() || { candidates: [] };
 
-    // Restore chat history to the UI
+    // Restore chat
     if (chatHistory.length > 0) {
         const chatContainer = document.getElementById("chat-messages");
         if (chatContainer) {
-            chatContainer.innerHTML = ""; // Clear welcome message
+            chatContainer.innerHTML = ""; 
             chatHistory.forEach(msg => addMessage(msg.text, msg.isUser));
         }
     }
 
-    // Restore the recommendations to the screen if they exist
+    // Restore recommendations (Displays instantly without loader)
     if (lastRecommendations && lastRecommendations.candidates && lastRecommendations.candidates.length > 0) {
-      // Restore the internal map so "delete" buttons work
       lastRecommendations.candidates.forEach(cand => {
         if (cand.cvName) {
           allRecommendationsMap[cand.cvName] = cand;
         }
       });
 
-      // Display the loaded recommendations
       const recommendationsContainer = document.getElementById("recommendations-container");
       const resultsSection = document.getElementById("results-section");
       
-      // Render the cards
-      displayRecommendations(lastRecommendations, recommendationsContainer, resultsSection, currentLang);
-      updateDownloadButtonVisibility(lastRecommendations);
+      if (recommendationsContainer && resultsSection) {
+        displayRecommendations(lastRecommendations, recommendationsContainer, resultsSection, currentLang);
+        updateDownloadButtonVisibility(lastRecommendations);
+      }
     }
   }
   // 12-15-2025 joud end
-  
-  initializeLanguage();
-
-  
-  
   await loadCertificateCatalog();
   //Ghaith's change start
   await loadTrainingCoursesCatalog();
