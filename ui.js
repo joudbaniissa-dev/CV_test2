@@ -1657,6 +1657,7 @@ const renderSubmittedCvBubbles = (allResults) => {
 // ---------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
   // 12-15-2025 Joud start
+  let chatHistory = [];
   // Check if persistence is enabled
   if (!isPersistenceEnabled()) {
     setPersistence(false); // Ensure keys are wiped on start if not enabled
@@ -1699,7 +1700,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   initializeLanguage();
 
-  let chatHistory = [];
+  
   
   await loadCertificateCatalog();
   //Ghaith's change start
