@@ -1739,6 +1739,10 @@ html[lang="ar"] .recommendation-intro {
  }
 
 /* 12-15-2025 Joud start */
+/* ADD THE NEW RULE HERE */
+#persistence-toggle {
+  display: none;
+}
 .toggle-switch-label {
   display: inline-flex;
   align-items: center;
