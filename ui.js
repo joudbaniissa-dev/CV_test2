@@ -1656,15 +1656,46 @@ const renderSubmittedCvBubbles = (allResults) => {
 // Main bootstrap
 // ---------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
-
   // 12-15-2025 Joud start
-  // If no persistence, this clears data. If enabled, it does nothing.
+  // Check if persistence is enabled
   if (!isPersistenceEnabled()) {
     setPersistence(false); // Ensure keys are wiped on start if not enabled
+    // Only wipe data if persistence is explicitly OFF
+    saveChatHistory([]);
+    saveLastRecommendations({ candidates: [] });
+  } else {
+    // If persistence is ON, LOAD the data instead of wiping it
+    chatHistory = loadChatHistory();
+    lastRecommendations = loadLastRecommendations() || { candidates: [] };
+
+    // Restore chat history to the UI
+    if (chatHistory.length > 0) {
+        const chatContainer = document.getElementById("chat-messages");
+        if (chatContainer) {
+            chatContainer.innerHTML = ""; // Clear welcome message
+            chatHistory.forEach(msg => addMessage(msg.text, msg.isUser));
+        }
+    }
+
+    // Restore the recommendations to the screen if they exist
+    if (lastRecommendations && lastRecommendations.candidates && lastRecommendations.candidates.length > 0) {
+      // Restore the internal map so "delete" buttons work
+      lastRecommendations.candidates.forEach(cand => {
+        if (cand.cvName) {
+          allRecommendationsMap[cand.cvName] = cand;
+        }
+      });
+
+      // Display the loaded recommendations
+      const recommendationsContainer = document.getElementById("recommendations-container");
+      const resultsSection = document.getElementById("results-section");
+      
+      // Render the cards
+      displayRecommendations(lastRecommendations, recommendationsContainer, resultsSection, currentLang);
+      updateDownloadButtonVisibility(lastRecommendations);
+    }
   }
   // 12-15-2025 joud end
-  saveChatHistory([]);
-  saveLastRecommendations({ candidates: [] });
   
   initializeLanguage();
 
